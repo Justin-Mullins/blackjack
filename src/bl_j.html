@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=UTF-8>
+    <title></title>
+  </head>
+
+  <body>
+    <header>
+      <h1 id="heading"></h1>
+    </header>
+    <div>
+      <div id="display">
+        <h2 id="message" style="visibility: hidden"></h2>
+        <p id="output"></p>
+        <br>
+	  <input type="button" id="startButton" value="Start" class="button">
+        <input type="button" id="hitButton" value="Hit" class="button">
+        <input type="button" id="stayButton" value="Stay" class="button">
+	  <input type="button" id="newGameButton" value="New Game" class="button">
+	</div>
+    </div>
+
+    <style>
+      body {
+	  font-family: Courier New;
+	  background-color: #6aa05b;
+	  color: #BAC1B8;
+	  font-weight: bold;
+      }
+
+      header {
+	  padding: 30px;
+	  background-color: #336699;
+	  width: 100%;
+	  height: 30px;
+	  margin: 0px;
+	  top: 0px;
+	  left: 0px;
+	  position: absolute;
+	  color: #ed6a5a;
+      }
+
+      h1 {
+	  position: relative;
+	  font-size: 34px;
+	  top: -27px;
+      }
+	
+      h2 {
+	  position: relative;
+	  top: 4px;
+	  padding-left: 30px;
+	  left: 210px;
+	  font-size: 30px;
+      }
+
+      img {
+	  width: 85px;
+	  height: 112px;
+      }
+
+      #display {
+	  width: auto;
+	  height: 700;
+	  margin-left: 0px auto;
+	  margin-right: 0px auto;
+      }
+
+      #hitButton {
+	  position: relative;
+	  display: none;
+	  float: left;
+	  bottom: 30px;
+	  left: 10px;
+      }
+
+      #stayButton {
+	  position: relative;
+	  display: none;
+	  float: left;
+	  bottom: 30px;
+	  left: 15px;
+      }
+      
+      #startButton {
+	  position: relative;
+	  left: 45px;
+	  top: 20px;
+      }
+
+      #newGameButton {
+	position: relative;
+	display: none;
+	left: 15px;
+	bottom: 30px;
+      }
+
+      .button {
+	   position: relative;
+	   width: 100px;
+	   height: 30px;
+	  background-color: #6aa05b;
+	  color: #4c5b5c;
+	  margin-left: 5px;
+	  border: solid 3px #4c5b5c;
+	  border-radius: 5px;
+	  font-size: 17px;
+	  font-family: Courier New;
+	  font-weight: bold;
+	  margin-top: 10px;
+      }
+
+      .button:hover {
+	  width: 100px;
+	  height: 30px;
+	  background-color: #BAC1B8;
+	  color: #ed6a5a;
+	  cursor: pointer;
+      }
+
+      .button:active {
+	  margin-top: 11px;
+      }
+
+      .card {
+	  width: 170px;
+	  height: 225px;
+	  border: solid 2px #BAC1B8;
+	  border-radius: 5px;
+	  margin: 5px;
+      }
+    </style>
+    <script>
+      
+      var heading = document.querySelector("#heading");
+      heading.innerHTML = "Blackjack";
+
+
+      var message = document.querySelector("#message");
+      message.innerHTML = "test";
+
+      var output = document.querySelector("#output");
+
+      // Add click listeners for the buttons.
+      var startButton = document.querySelector("#startButton");
+      startButton.addEventListener("click", startGame, false);
+
+      var hitButton = document.querySelector("#hitButton");
+      hitButton.addEventListener("click", hit, false);
+      
+      var stayButton = document.querySelector("#stayButton");
+      stayButton.addEventListener("click", stay, false);
+
+	  var newGameButton = document.querySelector("#newGameButton");
+	  newGameButton.addEventListener("click", startGame, false);
+      
+      var SUITS = ["Spades", "Hearts", "Diamonds", "Clubs"];
+      var NAMES = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace"];
+      var VALUES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11];
+      var DECK = [];
+      
+      var playerHand = [];
+      var dealerHand = [];
+
+      var dealerStayed = false;
+
+      var firstCardHidden = true;
+
+
+
+      function startGame() {
+
+	// Reset the title
+	heading.innerHTML = "Blackjack";
+
+	// Reset the deck
+	DECK = [];
+
+	// Generate the deck
+	generateDeck();
+	
+	// Shuffle the deck
+        shuffleDeck();
+
+	// Clear player's hands
+	playerHand = [];
+	dealerHand = [];
+
+	// Reset variable values
+	dealerStayed = false;
+	firstCardHidden = true;
+	
+	// Deal cards to the player and dealer
+      	dealCards();
+
+	// Display cards for dealer and player's hand.
+	displayCards();
+
+	// Display hit, stay button, and message
+	hitButton.style.display = "block";
+	stayButton.style.display = "block";
+	message.style.visibility = "hidden";
+
+	// Disable display for start game and new game buttons
+	startButton.style.display = "none";
+	newGameButton.style.display = "none";
+	
+
+	// Determine if the game has been won already
+	checkIfGameOver();
+	
+      }
+
+      function checkIfGameOver() {
+
+	var playerTotal = handTotal(playerHand);
+	var dealerTotal = handTotal(dealerHand);
+
+	if (playerTotal >= 21 || dealerTotal >= 21 || dealerStayed) {
+	  // Disable invisibility on the message element.
+	  message.style.visibility = "visible";
+	  heading.innerHTML = "Game Over<br>";
+	
+	  // Check for tie
+	  if (dealerTotal === playerTotal) {
+	    message.innerHTML = "It's a tie."
+	  }
+	
+	  // Check if dealer won
+	  if (dealerTotal <= 21) {
+	    if (playerTotal > 21 || (playerTotal < 21 && dealerTotal > playerTotal)) {
+	      message.innerHTML = "Dealer Wins";
+	    }
+	  }
+	
+	  // Check if player won
+	  if  (playerTotal <= 21) {
+	    if (dealerTotal > 21 || (dealerTotal < 21 && playerTotal > dealerTotal)) {
+	      message.innerHTML = "You Win!";
+	    }
+	  }
+	
+	  gameOver();
+	}
+      }
+
+      function gameOver() {
+
+	// Display dealer's first card
+	var dealerCard = dealerHand[0];
+	console.log(dealerCard);
+	var cardName = dealerCard[1];
+	var cardSuit = dealerCard[0];
+	dealerCard.src = "../img/" + cardName + cardSuit + ".png";
+	  
+	// Display dealer's hand total
+	output.innerHTML += "<br><b>Total: </b>" + handTotal(dealerHand);
+	 
+	// Hide the hit and stay button
+	hitButton.style.display = "none";
+	stayButton.style.display = "none";
+	
+	// Show the start game button
+	//startButton.style.display = "block";
+	//startButton.value = "New Game";
+	newGameButton.style.display = "block";
+
+      }	
+	
+      function handTotal(hand) {
+	
+	// Then calculate total and count the total ammount of aces in hand
+	var total = 0;
+	var numOfAces = 0;
+
+	for (var i = 0; i < hand.length; i++) {
+	  total += hand[i][2];
+	
+	  if (hand[i][1] === "Ace") {
+	    numOfAces++;
+	  }
+	}
+	
+	// for each ace in hand, if total is over 21, subtract 10
+	for (var k = 0; k < numOfAces; k++) {
+	  if (total > 21 && hand.indexOf("Ace") !== 01) {
+	    total -= 10;
+	  }
+	}
+	return total;
+      }
+
+      function displayCards() {
+	
+	// display player's hand
+	output.innerHTML = "<br><br><b>Player's Hand: </b><br>";
+	for (var i = 0; i < playerHand.length; i++) {
+	  var cardName = playerHand[i][1];
+	  var cardSuit = playerHand[i][0];
+	  //output.innerHTML += cardName + " of " + cardSuit;
+
+	  // Insert empty image as a placeholder for the card picture.
+	  output.innerHTML += "<img src='' id='temp' class='card'></img>";
+
+	  // Directing the image src to the card image location.
+	  var card = document.getElementById("temp");
+	  card.id = "dealerCard" + j;
+	  card.src = "../img/" + cardName + cardSuit + ".png";
+	}
+	output.innerHTML += "<br><b>Total: </b>" + handTotal(playerHand);	                      
+	
+	var firstCard = true;
+	// display dealer's hand
+	output.innerHTML += "<br><br><b>Dealer's Hand: </b><br>";
+	for (var j = 0; j < dealerHand.length; j++) {
+	  var cardName = dealerHand[j][1];
+	  var cardSuit = dealerHand[j][0];
+	  //output.innerHTML += cardName + " of " + cardSuit;
+	
+	  // Insert empty image as a placeholder for the card picture.
+	  output.innerHTML += "<img src='' id='temp' class='card' width='85px' height='112'></img>";
+	  var card = document.getElementById("temp");
+	  card.id = "dealerCard" + j;
+
+	  // Check if this is dealer's first card and player has not stayed, only show back of card.
+	  if (firstCardHidden === true && firstCard === true) {
+	    card.src = "../img/back.png";
+	    firstCard = false;
+	  } else {
+	    // Change image src to the card picture location.
+	    card.src = "../img/" + cardName + cardSuit + ".png";
+	  }
+	}
+	// output.innerHTML += "<br><b>Total: </b>" + handTotal(dealerHand);
+
+      }
+
+      function executeDealersTurn() {	
+	
+	firstCardHidden = false;
+	var dealerTotal = handTotal(dealerHand);
+	var playerTotal = handTotal(playerHand);
+	if (dealerTotal <= 17 || (dealerTotal < 21 && dealerTotal < playerTotal)) {
+	  // Deal card from the deck to dealer's hand
+	  dealerHand.push(DECK.pop());
+	
+	  // Display updated cards
+	  displayCards();
+	
+	  // run this function again.
+	  executeDealersTurn();
+	} else {
+	  dealerStayed = true;
+	  checkIfGameOver();
+	} 
+      }
+
+      function hit() {
+	
+	// Deal card from deck to player's hand
+	playerHand.push(DECK.pop());
+
+	// Display updated cards
+	displayCards();
+	
+	// Check if player busted
+	if (handTotal(playerHand) > 21) {
+	  executeDealersTurn();
+	}
+
+      }
+
+      function stay() {
+	
+	firstCardHidden = false;
+	displayCards();
+	executeDealersTurn();
+
+      }
+
+      function dealCards() {
+        
+	// Remove two cards from the deck and push them into playerHand
+	playerHand.push(DECK.pop());
+	playerHand.push(DECK.pop());
+
+        // Remove two cards from the deck and push them into the dealer's hand
+	dealerHand.push(DECK.pop());
+	dealerHand.push(DECK.pop());
+	
+      }
+
+      function generateDeck() {
+
+	// Create the card deck, each card has a suit, name, and value.
+        for (var suit = 0; suit < SUITS.length; suit++) {
+	  for (var i = 0; i < NAMES.length; i++) {
+	    var newCard = [SUITS[suit], NAMES[i], VALUES[i]];
+	    DECK.push(newCard);
+	  }
+        }
+
+      }
+
+      function shuffleDeck() {
+	
+	for(var counter = 0; counter < 2000; counter++) {
+	  var randIndex1 = Math.floor(Math.random() * 52);
+	  var randIndex2 = Math.floor(Math.random() * 52);
+	  var tempCard = DECK[randIndex1];
+	  DECK.splice(randIndex1, 1); // Remove card at randIndex1;
+	  DECK.splice(randIndex2, 0, tempCard); // Add card at randIndex2;
+	}
+      	
+      }
+
+    </script>
+  </body>
+</html>
+
